@@ -1,0 +1,68 @@
+{% extends "base/base.html" %}
+{% block title %}Pharmacy Dashboard | ClinicSetu{% endblock %}
+
+{% block content %}
+<h4 class="mb-3">Pharmacy Dashboard</h4>
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Patient</th>
+          <th>Doctor</th>
+          <th>Visit Date</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="pharmacyTable">
+        <tr>
+          <td colspan="5" class="text-muted">Loading...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+fetch("/api/v1/pharmacy/queue/")  // we’ll wire this API now
+  .then(res => res.json())
+  .then(data => {
+    const tbody = document.getElementById("pharmacyTable");
+    tbody.innerHTML = "";
+
+    if (data.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" class="text-center text-muted">
+            No prescriptions pending
+          </td>
+        </tr>`;
+      return;
+    }
+
+    data.forEach(p => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${p.patient_name}</td>
+          <td>${p.doctor_name}</td>
+          <td>${p.completed_at? new Date(p.completed_at).toLocaleDateString(): "-"}</td>
+          <td>
+            ${p.is_dispensed ? "Dispensed" : "Pending"}
+          </td>
+          <td>
+            <a href="/pharmacy/prescription/${p.prescription_id}/"
+               class="btn btn-sm btn-outline-primary">
+              View
+            </a>
+          </td>
+        </tr>
+      `;
+    });
+  });
+</script>
+{% endblock %}

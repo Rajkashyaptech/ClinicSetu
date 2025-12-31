@@ -1,0 +1,256 @@
+{% extends "base/base.html" %}
+{% block content %}
+
+<h4>Reception Desk</h4>
+
+<!-- PHONE SEARCH -->
+<div class="card mb-3">
+  <div class="card-body">
+    <h6>Patient Lookup</h6>
+    <input class="form-control mb-2" id="phoneInput" placeholder="Enter phone number">
+    <button class="btn btn-primary" onclick="lookupPatient()">Search</button>
+  </div>
+</div>
+
+<!-- PATIENT RESULTS -->
+<div id="patientResults"></div>
+
+<!-- NEW PATIENT FORM -->
+<div id="newPatientForm" class="card mb-3 d-none">
+  <div class="card-body">
+    <h6>Register New Patient</h6>
+    <input class="form-control mb-2" id="fullName" placeholder="Full Name">
+    <input class="form-control mb-2" id="age" placeholder="Age">
+    <select class="form-select mb-2" id="gender">
+      <option value="">Gender</option>
+      <option value="M">Male</option>
+      <option value="F">Female</option>
+    </select>
+  </div>
+</div>
+
+<!-- VISIT FORM -->
+<div id="visitForm" class="card mb-3 d-none">
+  <div class="card-body">
+    <h6>Create Visit</h6>
+
+    <input type="hidden" id="patientId">
+
+    <select class="form-select mb-2" id="doctorSelect"></select>
+
+    <div class="row">
+      <div class="col">
+        <input class="form-control" id="height" placeholder="Height (cm)">
+      </div>
+      <div class="col">
+        <input class="form-control" id="weight" placeholder="Weight (kg)">
+      </div>
+    </div>
+
+    <button class="btn btn-success mt-3" onclick="createVisit()">
+      Create Visit
+    </button>
+  </div>
+</div>
+
+<!-- LIVE QUEUE -->
+<h5 class="mt-4">Live Doctor-wise Queue</h5>
+<div id="queueBox" class="row"></div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.startsWith(name + "=")) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+const csrftoken = getCookie("csrftoken");
+
+/* RESET UI */
+function resetUI() {
+  patientResults.innerHTML = "";
+  newPatientForm.classList.add("d-none");
+  visitForm.classList.add("d-none");
+  patientId.value = "";
+}
+
+/* LOOKUP PATIENT BY PHONE */
+function lookupPatient() {
+  const phone = phoneInput.value.trim();
+  if (!phone) return;
+
+  resetUI();
+
+  fetch(`/api/v1/patients/lookup/?phone=${phone}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.length === 0) {
+        showNewPatientForm();
+      } else {
+        showPatientList(data);
+      }
+    });
+}
+
+/* SHOW LIST OF PATIENTS */
+function showPatientList(patients) {
+  let html = `
+    <div class="card mb-3">
+      <div class="card-body">
+        <h6>Existing Patients</h6>
+  `;
+
+  patients.forEach(p => {
+    html += `
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+          <strong>${p.full_name}</strong>
+          <small class="text-muted">
+            (${p.age || "-"} / ${p.gender || "-"})
+          </small>
+        </div>
+        <button class="btn btn-sm btn-outline-primary"
+          onclick="selectPatient(${p.id})">
+          Select
+        </button>
+      </div>
+    `;
+  });
+
+  html += `
+        <hr>
+        <button class="btn btn-sm btn-secondary"
+          onclick="showNewPatientForm()">
+          + Register New Patient
+        </button>
+      </div>
+    </div>
+  `;
+
+  patientResults.innerHTML = html;
+}
+
+/* SELECT EXISTING PATIENT */
+function selectPatient(id) {
+  patientId.value = id;
+  newPatientForm.classList.add("d-none");
+  visitForm.classList.remove("d-none");
+  loadDoctors();
+}
+
+/* SHOW NEW PATIENT FORM */
+function showNewPatientForm() {
+  patientResults.innerHTML = `
+    <div class="alert alert-warning">
+      New patient registration required
+    </div>
+  `;
+  newPatientForm.classList.remove("d-none");
+  visitForm.classList.remove("d-none");
+  loadDoctors();
+}
+
+/* LOAD DOCTORS */
+function loadDoctors() {
+  fetch("/api/v1/accounts/doctors/")
+    .then(res => res.json())
+    .then(data => {
+      doctorSelect.innerHTML = "";
+      data.forEach(d => {
+        doctorSelect.innerHTML +=
+          `<option value="${d.id}">${d.name}</option>`;
+      });
+    });
+}
+
+/* CREATE VISIT */
+function createVisit() {
+  // STEP 1: create or select patient
+  fetch("/api/v1/patients/create-or-get/", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRFToken": csrftoken
+    },
+    body: JSON.stringify({
+      phone: phoneInput.value.trim(),
+      patient_id: patientId.value || null,
+      full_name: fullName?.value,
+      age: age?.value,
+      gender: gender?.value
+    })
+  })
+  .then(res => res.json())
+  .then(patient => {
+
+    // STEP 2: create visit USING patient.id
+    return fetch("/api/v1/visits/create/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrftoken
+      },
+      body: JSON.stringify({
+        patient_id: patient.id,
+        doctor_id: doctorSelect.value,
+        height_cm: height.value,
+        weight_kg: weight.value
+      })
+    });
+  })
+  .then(res => res.json())
+  .then(() => {
+    alert("Visit created successfully");
+    loadQueue();      // 🔑 THIS updates queue immediately
+    resetUI();        // reset form without reload
+  });
+}
+
+/* LIVE DOCTOR-WISE QUEUE */
+function loadQueue() {
+  fetch("/api/v1/consultations/receptionist-queue/")
+    .then(res => res.json())
+    .then(data => {
+      let html = "";
+
+      for (const doctor in data) {
+        html += `
+          <div class="col-md-4">
+            <div class="card mb-3">
+              <div class="card-header fw-semibold">
+                ${doctor}
+              </div>
+              <ul class="list-group list-group-flush">
+        `;
+        data[doctor].forEach(p => {
+          html += `<li class="list-group-item">${p.patient_name}</li>`;
+        });
+        html += `
+              </ul>
+            </div>
+          </div>
+        `;
+      }
+
+      queueBox.innerHTML = html || "<p class='text-muted'>No patients in queue</p>";
+    });
+}
+
+setInterval(loadQueue, 10000);
+loadQueue();
+</script>
+{% endblock %}

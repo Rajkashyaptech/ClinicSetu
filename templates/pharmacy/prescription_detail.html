@@ -1,0 +1,66 @@
+{% extends "base/base.html" %}
+{% block title %}Prescription | ClinicSetu{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+
+<h4 class="mb-3">Prescription</h4>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <strong>Patient:</strong> {{ prescription.visit.patient.full_name }}<br>
+    <strong>Doctor:</strong> {{ prescription.visit.doctor.username }}<br>
+    <strong>Date:</strong> {{ prescription.created_at|date:"d M Y" }}
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <h6>Medicines</h6>
+    <ul>
+      {% for item in prescription.items.all %}
+        {% if item.status == "active" %}
+          <li>
+            {{ item.medicine_name }} —
+            {{ item.dosage }},
+            {{ item.frequency }},
+            {{ item.duration }}
+          </li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+<div class="d-flex gap-2">
+  <button class="btn btn-outline-secondary" onclick="window.print()">
+    Print
+  </button>
+
+<button id="dispenseBtn" class="btn btn-success">
+  Mark as Dispensed
+</button>
+
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+document.getElementById("dispenseBtn").addEventListener("click", function () {
+  fetch("/api/v1/pharmacy/dispense/{{ dispense_record.id }}/", {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": csrftoken
+    }
+  })
+  .then(res => res.json())
+  .then(() => {
+    alert("Medicines marked as dispensed");
+    window.location.href = "/pharmacy/";
+  });
+});
+</script>
+{% endblock %}
