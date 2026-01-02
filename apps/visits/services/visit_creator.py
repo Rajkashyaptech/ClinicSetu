@@ -2,6 +2,8 @@ from django.db import transaction
 from ..models import Visit, PatientVitals
 from apps.consultations.models import ConsultationSession
 
+from apps.audit.services.logger import log_action
+
 
 ALLOWED_VITAL_FIELDS = {
     "height_cm",
@@ -35,6 +37,18 @@ def create_visit_with_vitals(*, hospital, patient, doctor, vitals_data):
         visit=visit,
         doctor=doctor,
         session_number=1
+    )
+
+    log_action(
+        actor=None,  # receptionist
+        action="VISIT_CREATED",
+        entity="Visit",
+        entity_id=visit.id,
+        metadata={
+            "patient_id": patient.id,
+            "doctor_id": doctor.id,
+            "hospital_id": hospital.id
+        }
     )
 
     return visit

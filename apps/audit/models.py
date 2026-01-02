@@ -1,22 +1,22 @@
 from django.db import models
-from apps.accounts.models import User
-from apps.hospitals.models import Hospital
+from django.conf import settings
 
-# Create your models here.
+
 class AuditLog(models.Model):
-    hospital = models.ForeignKey(Hospital, on_delete=models.CASCADE)
-    user = models.ForeignKey(
-        User, on_delete=models.SET_NULL,
-        null=True, blank=True
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
     )
 
-    action = models.CharField(max_length=255)
-    entity_type = models.CharField(max_length=100)
-    entity_id = models.PositiveIntegerField()
+    action = models.CharField(max_length=100)
+    entity = models.CharField(max_length=100)
+    entity_id = models.CharField(max_length=50)
 
     metadata = models.JSONField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.action} on {self.entity_type}:{self.entity_id}"
+        return f"{self.actor} | {self.action} | {self.entity}"

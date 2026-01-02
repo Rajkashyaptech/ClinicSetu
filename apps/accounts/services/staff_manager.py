@@ -2,6 +2,8 @@ from django.core.exceptions import ValidationError
 from apps.accounts.models import User
 from common.constants import UserRole
 
+from apps.audit.services.logger import log_action
+
 
 def _active_count(hospital, role):
     return User.objects.filter(
@@ -26,13 +28,26 @@ def create_staff_user(*, hospital, username, password, role):
 
     if not can_create_staff(hospital, role):
         raise ValidationError(f"{role} limit reached")
-
-    return User.objects.create_user(
+    
+    user = User.objects.create_user(
         username=username,
         password=password,
         role=role,
         hospital=hospital
     )
+
+    log_action(
+        actor=None,  # will be hospital admin (can be injected later)
+        action="STAFF_CREATED",
+        entity="User",
+        entity_id=user.id,
+        metadata={
+            "role": role,
+            "hospital_id": hospital.id
+        }
+    )
+
+    return user
 
 
 def set_staff_status(*, user, hospital, is_active: bool):
@@ -44,6 +59,17 @@ def set_staff_status(*, user, hospital, is_active: bool):
 
     user.is_active = is_active
     user.save(update_fields=["is_active"])
+
+    log_action(
+        actor=None,
+        action="STAFF_STATUS_CHANGED",
+        entity="User",
+        entity_id=user.id,
+        metadata={
+            "is_active": is_active,
+            "role": user.role
+        }
+    )
 
 
 def update_staff_details(*, user, hospital, username=None, password=None):
@@ -60,3 +86,14 @@ def update_staff_details(*, user, hospital, username=None, password=None):
         user.set_password(password)
 
     user.save()
+
+    log_action(
+        actor=None,
+        action="STAFF_UPDATED",
+        entity="User",
+        entity_id=user.id,
+        metadata={
+            "username_changed": bool(username),
+            "password_changed": bool(password)
+        }
+    )

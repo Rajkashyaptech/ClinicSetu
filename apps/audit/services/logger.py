@@ -1,12 +1,11 @@
 from apps.audit.models import AuditLog
 
 
-def log_action(*, hospital, user, action, entity_type, entity_id, metadata=None):
+def log_action(*, actor, action, entity, entity_id, metadata=None):
     AuditLog.objects.create(
-        hospital=hospital,
-        user=user,
+        actor=actor,
         action=action,
-        entity_type=entity_type,
-        entity_id=entity_id,
+        entity=entity,
+        entity_id=str(entity_id),
         metadata=metadata or {}
     )
