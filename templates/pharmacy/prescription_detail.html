@@ -37,9 +37,22 @@
     Print
   </button>
 
-<button id="dispenseBtn" class="btn btn-success">
+<button
+  id="dispenseBtn"
+  class="btn btn-success"
+  {% if not can_dispense %}
+    disabled
+  {% endif %}
+>
   Mark as Dispensed
 </button>
+
+{% if not can_dispense %}
+  <small class="text-muted d-block mt-1">
+    Waiting for doctor to complete consultation
+  </small>
+{% endif %}
+
 
 </div>
 {% endblock %}
@@ -49,18 +62,31 @@
 <script>
 const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-document.getElementById("dispenseBtn").addEventListener("click", function () {
-  fetch("/api/v1/pharmacy/dispense/{{ dispense_record.id }}/", {
-    method: "POST",
-    headers: {
-      "X-CSRFToken": csrftoken
-    }
-  })
-  .then(res => res.json())
-  .then(() => {
-    alert("Medicines marked as dispensed");
-    window.location.href = "/pharmacy/";
+const dispenseBtn = document.getElementById("dispenseBtn");
+
+if (dispenseBtn && !dispenseBtn.disabled) {
+  dispenseBtn.addEventListener("click", function () {
+    fetch("/api/v1/pharmacy/dispense/{{ prescription.id }}/", {
+      method: "POST",
+      headers: {
+        "X-CSRFToken": csrftoken
+      }
+    })
+    .then(async res => {
+      const data = await res.json();
+      if (!res.ok) {
+        throw data;
+      }
+      return data;
+    })
+    .then(() => {
+      alert("Medicines marked as dispensed");
+      window.location.href = "/pharmacy/";
+    })
+    .catch(err => {
+      alert(err.detail || "Unable to dispense medicines");
+    });
   });
-});
+}
 </script>
 {% endblock %}

@@ -51,9 +51,7 @@ fetch("/api/v1/pharmacy/queue/")  // we’ll wire this API now
           <td>${p.patient_name}</td>
           <td>${p.doctor_name}</td>
           <td>${p.completed_at? new Date(p.completed_at).toLocaleDateString(): "-"}</td>
-          <td>
-            ${p.is_dispensed ? "Dispensed" : "Pending"}
-          </td>
+          <td>Pending</td>
           <td>
             <a href="/pharmacy/prescription/${p.prescription_id}/"
                class="btn btn-sm btn-outline-primary">

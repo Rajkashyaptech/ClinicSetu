@@ -8,6 +8,7 @@ from apps.pharmacy.services.print_marker import mark_as_printed
 from apps.pharmacy.services.dispense_marker import mark_as_dispensed
 from apps.pharmacy.models import DispenseRecord
 from apps.prescriptions.models import Prescription
+from apps.consultations.models import ConsultationSession
 
 from apps.pharmacy.services.dispense_initializer import get_or_create_dispense_record
 
@@ -52,11 +53,16 @@ def prescription_detail(request, prescription_id):
 
     dispense_record = get_or_create_dispense_record(prescription)
 
+    can_dispense = prescription.visit.sessions.filter(
+        status=ConsultationSession.STATUS_COMPLETED
+    ).exists()
+
     return render(
         request,
         "pharmacy/prescription_detail.html",
         {
             "prescription": prescription,
             "dispense_record": dispense_record,
+            "can_dispense": can_dispense,
         }
     )
