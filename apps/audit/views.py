@@ -1,23 +1,21 @@
-from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+
 from apps.audit.models import AuditLog
+from common.permissions import role_required
 from common.constants import UserRole
 
 # Create your views here.
 @login_required
+@role_required(UserRole.SUPER_ADMIN, UserRole.HOSPITAL_ADMIN)
 def audit_log_view(request):
     user = request.user
 
-    if user.role == UserRole.SUPER_ADMIN:
-        logs = AuditLog.objects.select_related("actor").order_by("-created_at")
+    logs = AuditLog.objects.select_related("actor").order_by("-created_at")
 
-    elif user.role == UserRole.HOSPITAL_ADMIN:
-        logs = AuditLog.objects.select_related("actor").filter(
-            actor__hospital=user.hospital
-        ).order_by("-created_at")
-
-    else:
-        return render(request, "403.html", status=403)
+    # Hospital admin sees only their hospital logs
+    if user.role == UserRole.HOSPITAL_ADMIN:
+        logs = logs.filter(actor__hospital=user.hospital)
 
     return render(
         request,

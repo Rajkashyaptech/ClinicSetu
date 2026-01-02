@@ -3,15 +3,19 @@
 
 <h4>Audit Logs</h4>
 
+<p class="text-muted">
+  Read-only system activity log. Latest actions shown first.
+</p>
+
 <table class="table table-sm table-bordered">
-  <thead class="table-light">
+  <thead>
     <tr>
       <th>Time</th>
       <th>Actor</th>
       <th>Action</th>
       <th>Entity</th>
       <th>Entity ID</th>
-      <th>Metadata</th>
+      <th>Details</th>
     </tr>
   </thead>
   <tbody>
@@ -20,7 +24,7 @@
         <td>{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
         <td>
           {% if log.actor %}
-            {{ log.actor.username }}
+            {{ log.actor.username }} ({{ log.actor.role }})
           {% else %}
             System
           {% endif %}
@@ -29,7 +33,11 @@
         <td>{{ log.entity }}</td>
         <td>{{ log.entity_id }}</td>
         <td>
-          <pre class="mb-0">{{ log.metadata|default:"{}" }}</pre>
+          {% if log.metadata %}
+            <pre class="mb-0">{{ log.metadata }}</pre>
+          {% else %}
+            —
+          {% endif %}
         </td>
       </tr>
     {% empty %}
