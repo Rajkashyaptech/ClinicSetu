@@ -10,6 +10,9 @@ from apps.consultations.services.session_closer import complete_session
 from apps.consultations.models import ConsultationSession
 from apps.prescriptions.models import Prescription
 
+from apps.consultations.services.patient_history import get_recent_visit_history
+
+
 # Create your views here.
 @login_required
 @role_required(UserRole.DOCTOR)
@@ -52,14 +55,17 @@ def consultation_detail(request, session_id):
         visit__hospital=request.user.hospital
     )
 
-    from apps.prescriptions.models import Prescription
-
-    # ✅ Lazy-create prescription on first consult
     prescription, _ = Prescription.objects.get_or_create(
         visit=session.visit
     )
 
     items = prescription.items.filter(status="active")
+
+    patient = session.visit.patient
+    history = get_recent_visit_history(
+        patient=patient,
+        exclude_visit=session.visit
+    )
 
     return render(
         request,
@@ -68,6 +74,7 @@ def consultation_detail(request, session_id):
             "session": session,
             "prescription": prescription,
             "items": items,
+            "history": history,
         }
     )
 

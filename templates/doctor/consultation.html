@@ -14,6 +14,34 @@
   </div>
 </div>
 
+{% if history %}
+<hr>
+<h6>Previous Visits</h6>
+
+{% for visit in history %}
+  <div class="card mb-2">
+    <div class="card-body">
+      <strong>Date:</strong> {{ visit.visit_date|date:"Y-m-d" }} <br>
+      <strong>Doctor:</strong> {{ visit.doctor }}
+
+      {% if visit.medicines %}
+        <ul class="mt-2">
+          {% for med in visit.medicines %}
+            <li>
+              {{ med.medicine_name }}
+              ({{ med.dosage }} – {{ med.frequency }} – {{ med.duration }})
+              <small class="text-muted">[{{ med.status }}]</small>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted mt-2">No medicines prescribed</p>
+      {% endif %}
+    </div>
+  </div>
+{% endfor %}
+{% endif %}
+
 <!-- VITALS -->
 <div class="card mb-3">
   <div class="card-body">
