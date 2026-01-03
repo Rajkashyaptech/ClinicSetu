@@ -82,9 +82,22 @@
       <input type="hidden" id="sessionId" value="{{ session.id }}">
 
       <div class="row">
-        <div class="col-md-3">
-          <input class="form-control" placeholder="Medicine" id="medicine" required>
-        </div>
+        <div class="col-md-3 position-relative">
+  <input
+    class="form-control"
+    placeholder="Medicine"
+    id="medicine"
+    autocomplete="off"
+    required
+  >
+
+  <ul
+    id="medicineSuggestions"
+    class="list-group position-absolute w-100 d-none"
+    style="z-index: 1000; max-height: 200px; overflow-y: auto;"
+  ></ul>
+</div>
+
         <div class="col-md-3">
           <input class="form-control" placeholder="Dosage" id="dosage" required>
         </div>
@@ -183,5 +196,109 @@ function addMedicine(event) {
 
 /* INIT */
 loadMedicines();
+
+const medicineInput = document.getElementById("medicine");
+const suggestionsBox = document.getElementById("medicineSuggestions");
+
+let suggestions = [];
+let activeIndex = -1;
+
+/* FETCH AUTOCOMPLETE */
+medicineInput.addEventListener("input", () => {
+  const query = medicineInput.value.trim();
+
+  if (query.length < 2) {
+    hideSuggestions();
+    return;
+  }
+
+  fetch(`/api/v1/medicines/autocomplete/?q=${query}`)
+    .then(res => res.json())
+    .then(data => {
+      suggestions = data;
+      renderSuggestions();
+    })
+    .catch(() => hideSuggestions());
+});
+
+/* KEYBOARD NAVIGATION */
+medicineInput.addEventListener("keydown", (e) => {
+  if (suggestionsBox.classList.contains("d-none")) return;
+
+  if (e.key === "ArrowDown") {
+    activeIndex = Math.min(activeIndex + 1, suggestions.length - 1);
+    updateActiveItem();
+    e.preventDefault();
+  }
+
+  if (e.key === "ArrowUp") {
+    activeIndex = Math.max(activeIndex - 1, 0);
+    updateActiveItem();
+    e.preventDefault();
+  }
+
+  if (e.key === "Enter" && activeIndex >= 0) {
+    selectSuggestion(suggestions[activeIndex].name);
+    e.preventDefault(); // prevent form submit
+  }
+
+  if (e.key === "Escape") {
+    hideSuggestions();
+  }
+});
+
+/* CLICK OUTSIDE */
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("#medicineSuggestions") &&
+      e.target !== medicineInput) {
+    hideSuggestions();
+  }
+});
+
+/* RENDER SUGGESTIONS */
+function renderSuggestions() {
+  if (!suggestions.length) {
+    hideSuggestions();
+    return;
+  }
+
+  suggestionsBox.innerHTML = "";
+  activeIndex = -1;
+
+  suggestions.forEach((item, index) => {
+    const li = document.createElement("li");
+    li.className = "list-group-item list-group-item-action";
+    li.textContent = item.name;
+
+    li.addEventListener("click", () => {
+      selectSuggestion(item.name);
+    });
+
+    suggestionsBox.appendChild(li);
+  });
+
+  suggestionsBox.classList.remove("d-none");
+}
+
+/* UPDATE ACTIVE ITEM */
+function updateActiveItem() {
+  Array.from(suggestionsBox.children).forEach((li, idx) => {
+    li.classList.toggle("active", idx === activeIndex);
+  });
+}
+
+/* SELECT SUGGESTION */
+function selectSuggestion(name) {
+  medicineInput.value = name;
+  hideSuggestions();
+}
+
+/* HIDE */
+function hideSuggestions() {
+  suggestionsBox.classList.add("d-none");
+  suggestionsBox.innerHTML = "";
+  activeIndex = -1;
+}
+
 </script>
 {% endblock %}
