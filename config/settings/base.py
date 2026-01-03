@@ -62,6 +62,7 @@ EXTERNAL_APPS = [
     'apps.prescriptions',
     'apps.pharmacy',
     'apps.audit',
+    'apps.medicines',
 
     # Dependencies
     'rest_framework',
