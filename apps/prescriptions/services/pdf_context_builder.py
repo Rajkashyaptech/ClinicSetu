@@ -5,14 +5,13 @@ def build_consultation_pdf_context(*, visit):
     hospital = visit.hospital
     patient = visit.patient
     doctor = visit.doctor
-    prescription = visit.prescription
 
-    items = prescription.items.select_related(
-        "session"
-    ).order_by("id")
+    sessions = visit.sessions.prefetch_related(
+        "prescription_items"
+    ).order_by("session_number")
 
     context = {
-        # 🏥 Hospital Branding
+        # Hospital Branding
         "hospital": {
             "name": hospital.name,
             "address": hospital.address,
@@ -21,7 +20,7 @@ def build_consultation_pdf_context(*, visit):
             "logo_url": hospital.logo.url if hospital.logo else None,
         },
 
-        # 👤 Patient Info
+        # Patient Info
         "patient": {
             "full_name": patient.full_name,
             "age": patient.age,
@@ -29,30 +28,38 @@ def build_consultation_pdf_context(*, visit):
             "phone": patient.phone_number,
         },
 
-        # 🩺 Doctor Info
+        # Doctor Info
         "doctor": {
             "name": doctor.username,
         },
 
-        # 📅 Visit Info
+        # Visit Info
         "visit": {
             "visit_date": localtime(visit.created_at),
             "validity_days": visit.validity_days,
         },
 
-        # 💊 Medicines
-        "medicines": [
+        # Sessions (ONE PAGE PER SESSION)
+        "sessions": [
             {
-                "name": item.medicine_name,
-                "dosage": item.dosage,
-                "frequency": item.frequency,
-                "duration": item.duration,
-                "status": item.status,
+                "session_number": session.session_number,
+                "date": localtime(session.completed_at),
+                "medicines": [
+                    {
+                        "name": item.medicine_name,
+                        "dosage": item.dosage,
+                        "frequency": item.frequency,
+                        "duration": item.duration,
+                        "status": item.status,
+                    }
+                    for item in session.prescription_items.all()
+                ],
             }
-            for item in items
+            for session in sessions
+            if session.completed_at  # only completed sessions
         ],
 
-        # 🕒 Meta
+        # Meta
         "generated_at": localtime(),
     }
 

@@ -16,6 +16,9 @@ def create_followup_session(visit):
 
     last_session = visit.sessions.order_by("-session_number").first()
 
+    if last_session and last_session.status != ConsultationSession.STATUS_COMPLETED:
+        raise ValueError("Previous session still open")
+    
     return ConsultationSession.objects.create(
         visit=visit,
         doctor=visit.doctor,

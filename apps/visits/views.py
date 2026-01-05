@@ -26,7 +26,7 @@ def create_visit(request):
             hospital=request.user.hospital
         )
 
-        visit = create_visit_with_vitals(
+        visit, session = create_visit_with_vitals(
             hospital=request.user.hospital,
             patient=patient,
             doctor_id=doctor_id,

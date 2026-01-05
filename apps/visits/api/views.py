@@ -32,7 +32,7 @@ class CreateVisitAPI(APIView):
             if key in serializer.validated_data
         }
 
-        visit = create_visit_with_vitals(
+        visit, session = create_visit_with_vitals(
             hospital=request.user.hospital,
             patient=patient,
             doctor=doctor,

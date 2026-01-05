@@ -55,7 +55,17 @@ def consultation_detail(request, session_id):
         visit=session.visit
     )
 
-    items = prescription.items.filter(status="active")
+    # Medicines added in THIS session only
+    current_items = prescription.items.filter(
+        session=session,
+        status="active"
+    )
+
+    # Medicines from PREVIOUS sessions (history)
+    previous_items = prescription.items.exclude(
+        session=session
+    )
+
 
     patient = session.visit.patient
     history = get_recent_visit_history(
@@ -69,7 +79,8 @@ def consultation_detail(request, session_id):
         {
             "session": session,
             "prescription": prescription,
-            "items": items,
+            "current_items": current_items,
+            "previous_items": previous_items,
             "history": history,
             "sidebar_template": "base/sidebar/doctor.html",
         }
@@ -122,7 +133,6 @@ def consultation_view(request, visit_id):
     visit = get_object_or_404(
         Visit,
         id=visit_id,
-        is_active=False,
         prescription__isnull=False
     )
 
@@ -154,7 +164,6 @@ def consultation_pdf(request, visit_id):
     visit = get_object_or_404(
         Visit,
         id=visit_id,
-        is_active=False,
         prescription__isnull=False
     )
 

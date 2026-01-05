@@ -1,44 +1,49 @@
 {% extends "base/base.html" %}
-{% block title %}Consultation History{% endblock %}
+
+{% block title %}Consultation History | ClinicSetu{% endblock %}
 
 {% block content %}
 <h4 class="mb-3">Consultation History</h4>
 
-<table class="table table-bordered table-sm">
-  <thead>
-    <tr>
-      <th>Date</th>
-      <th>Patient</th>
-      <th>Doctor</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for visit in visits %}
-      <tr>
-        <td>{{ visit.created_at|date:"Y-m-d" }}</td>
-        <td>{{ visit.patient.full_name }}</td>
-        <td>{{ visit.doctor.username }}</td>
-        <td>
-          <a class="btn btn-sm btn-outline-primary"
-             href="{% url 'consultation_view' visit.id %}">
-            View
-          </a>
+{% if visits %}
+  {% for visit in visits %}
+    <div class="card mb-3">
+      <div class="card-body">
 
-          <a class="btn btn-sm btn-outline-secondary"
-             href="{% url 'consultation_pdf' visit.id %}"
-             target="_blank">
-            Print PDF
-          </a>
-        </td>
-      </tr>
-    {% empty %}
-      <tr>
-        <td colspan="4" class="text-muted text-center">
-          No consultations found
-        </td>
-      </tr>
-    {% endfor %}
-  </tbody>
-</table>
+        <h6>
+          {{ visit.patient.full_name }}
+          <small class="text-muted">
+            ({{ visit.created_at|date:"d M Y" }})
+          </small>
+        </h6>
+
+        <p class="text-muted mb-2">
+          Doctor: {{ visit.doctor.username }}
+        </p>
+
+        <ul class="list-group">
+          {% for session in visit.sessions.all %}
+            {% if session.completed_at %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>
+                  Session #{{ session.session_number }}
+                  — {{ session.completed_at|date:"d M Y H:i" }}
+                </span>
+
+                <a href="{% url 'consultation_pdf' visit.id %}"
+                   class="btn btn-sm btn-outline-primary"
+                   target="_blank">
+                  PDF
+                </a>
+              </li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+
+      </div>
+    </div>
+  {% endfor %}
+{% else %}
+  <p class="text-muted">No consultations found.</p>
+{% endif %}
 {% endblock %}

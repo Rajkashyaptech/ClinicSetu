@@ -131,10 +131,12 @@
 <script>
 const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 const prescriptionId = document.getElementById("prescriptionId").value;
+const sessionId = document.getElementById("sessionId").value;
 
 /* LOAD MEDICINES */
 function loadMedicines() {
-  fetch(`/api/v1/prescriptions/active/?prescription_id=${prescriptionId}`)
+  fetch(`/api/v1/prescriptions/active/?prescription_id=${prescriptionId}&session_id=${sessionId}`)
+
     .then(res => res.json())
     .then(data => {
       const list = document.getElementById("medicineList");

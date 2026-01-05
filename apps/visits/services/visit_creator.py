@@ -1,7 +1,8 @@
 from django.db import transaction
+from django.utils import timezone
 from ..models import Visit, PatientVitals
 from apps.consultations.models import ConsultationSession
-
+from apps.consultations.services.followup_creator import create_followup_session
 from apps.audit.services.logger import log_action
 
 
@@ -13,12 +14,36 @@ ALLOWED_VITAL_FIELDS = {
     "blood_pressure",
 }
 
+
 @transaction.atomic
 def create_visit_with_vitals(*, hospital, patient, doctor, vitals_data):
+    """
+    Create new visit OR create follow-up session if visit already exists
+    """
+
+    # 🔍 1. Check for active visit
+    visit = (
+        Visit.objects
+        .filter(
+            hospital=hospital,
+            patient=patient,
+            doctor=doctor,
+            is_active=True,
+        )
+        .order_by("-created_at")
+        .first()
+    )
+
+    # 🔁 FOLLOW-UP FLOW
+    if visit and not visit.is_expired():
+        session = create_followup_session(visit)
+        return visit, session
+
+    # 🆕 NEW VISIT FLOW
     visit = Visit.objects.create(
         hospital=hospital,
         patient=patient,
-        doctor=doctor
+        doctor=doctor,
     )
 
     filtered_vitals = {
@@ -33,10 +58,12 @@ def create_visit_with_vitals(*, hospital, patient, doctor, vitals_data):
             **filtered_vitals
         )
 
-    ConsultationSession.objects.create(
+    session = ConsultationSession.objects.create(
         visit=visit,
         doctor=doctor,
-        session_number=1
+        session_number=1,
+        status=ConsultationSession.STATUS_OPEN,
+        started_at=timezone.now(),
     )
 
     log_action(
@@ -51,4 +78,4 @@ def create_visit_with_vitals(*, hospital, patient, doctor, vitals_data):
         }
     )
 
-    return visit
+    return visit, session

@@ -65,10 +65,11 @@ class ActivePrescriptionItemsAPI(APIView):
 
     def get(self, request):
         prescription_id = request.query_params.get("prescription_id")
+        session_id = request.query_params.get("session_id")
 
         items = PrescriptionItem.objects.filter(
             prescription_id=prescription_id,
-            is_active=True,
+            session_id=session_id,
             status="active",
             prescription__visit__hospital=request.user.hospital
         ).values(
