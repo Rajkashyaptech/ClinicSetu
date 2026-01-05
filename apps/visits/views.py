@@ -41,4 +41,11 @@ def create_visit(request):
 @login_required
 @role_required(UserRole.RECEPTIONIST)
 def receptionist_dashboard(request):
-    return render(request, "receptionist/create_visit.html")
+    return render(
+    request,
+    "receptionist/create_visit.html",
+    {
+        "sidebar_template": "base/sidebar/receptionist.html"
+    }
+)
+

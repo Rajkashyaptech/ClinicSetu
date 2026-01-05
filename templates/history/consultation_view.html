@@ -1,0 +1,44 @@
+{% extends "base/base.html" %}
+{% block title %}Consultation{% endblock %}
+
+{% block content %}
+<h4 class="mb-3">Consultation Details</h4>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <strong>Patient:</strong> {{ visit.patient.full_name }}<br>
+    <strong>Age:</strong> {{ visit.patient.age|default:"-" }} |
+    <strong>Gender:</strong> {{ visit.patient.gender|default:"-" }}<br>
+    <strong>Doctor:</strong> {{ visit.doctor.username }}<br>
+    <strong>Date:</strong> {{ visit.created_at|date:"Y-m-d H:i" }}
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <h6>Medicines</h6>
+
+    {% if visit.prescription.items.exists %}
+      <ul class="list-group">
+        {% for item in visit.prescription.items.all %}
+          <li class="list-group-item">
+            <strong>{{ item.medicine_name }}</strong> —
+            {{ item.dosage }}, {{ item.frequency }}, {{ item.duration }}
+            <small class="text-muted">[{{ item.status }}]</small>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-muted">No medicines prescribed</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="text-end">
+  <a href="{% url 'consultation_pdf' visit.id %}"
+     target="_blank"
+     class="btn btn-outline-primary">
+    Print PDF
+  </a>
+</div>
+{% endblock %}

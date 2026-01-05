@@ -27,13 +27,18 @@
 
 {% block extra_js %}
 <script>
-fetch("/api/v1/consultations/doctor-queue/")
-  .then(res => res.json())
+fetch("/api/v1/consultations/doctor/queue/")
+  .then(res => {
+    if (!res.ok) {
+      throw new Error("Failed to load doctor queue");
+    }
+    return res.json();
+  })
   .then(data => {
     const tbody = document.getElementById("queueBody");
     tbody.innerHTML = "";
 
-    if (data.length === 0) {
+    if (!data.length) {
       tbody.innerHTML = `
         <tr>
           <td colspan="4" class="text-center text-muted">
@@ -58,6 +63,15 @@ fetch("/api/v1/consultations/doctor-queue/")
         </tr>
       `;
     });
+  })
+  .catch(err => {
+    document.getElementById("queueBody").innerHTML = `
+      <tr>
+        <td colspan="4" class="text-danger text-center">
+          ${err.message}
+        </td>
+      </tr>
+    `;
   });
 </script>
 {% endblock %}

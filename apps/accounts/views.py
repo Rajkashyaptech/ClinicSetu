@@ -38,7 +38,7 @@ def home_redirect(request):
         return redirect("receptionist_dashboard")
 
     if role == UserRole.DOCTOR:
-        return redirect("doctor_dashboard")
+        return redirect("doctor_queue")
 
     if role == UserRole.MEDICAL_STAFF:
         return redirect("pharmacy_dashboard")
@@ -52,4 +52,11 @@ def home_redirect(request):
 @login_required
 @role_required(UserRole.HOSPITAL_ADMIN)
 def hospital_admin_dashboard(request):
-    return render(request, "hospital_admin/staff_dashboard.html")
+    return render(
+    request,
+    "hospital_admin/staff_dashboard.html",
+    {
+        "sidebar_template": "base/sidebar/hospital_admin.html"
+    }
+)
+

@@ -39,7 +39,14 @@ def mark_dispensed(request, record_id):
 @login_required
 @role_required(UserRole.MEDICAL_STAFF)
 def pharmacy_dashboard(request):
-    return render(request, "pharmacy/dashboard.html")
+    return render(
+    request,
+    "pharmacy/dashboard.html",
+    {
+        "sidebar_template": "base/sidebar/pharmacy.html"
+    }
+)
+
 
 
 @login_required
