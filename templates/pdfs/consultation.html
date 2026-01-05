@@ -1,197 +1,186 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Consultation</title>
+<head>
+  <meta charset="utf-8" />
+  <title>Consultation</title>
 
-    <style>
-      body {
-        font-family: Arial, Helvetica, sans-serif;
-        font-size: 12px;
-        color: #000;
-      }
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      color: #000;
+    }
 
-      .page {
-        page-break-after: always;
-      }
+    .page {
+      page-break-after: always;
+    }
 
-      .page:last-child {
-        page-break-after: auto;
-      }
+    .page:last-child {
+      page-break-after: auto;
+    }
 
-      .header {
-        display: flex;
-        align-items: center;
-        border-bottom: 2px solid #000;
-        padding-bottom: 10px;
-        margin-bottom: 15px;
-      }
+    .header {
+      display: flex;
+      align-items: center;
+      border-bottom: 2px solid #000;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+    }
 
-      .logo {
-        width: 80px;
-        height: 80px;
-        margin-right: 15px;
-      }
+    .logo {
+      width: 80px;
+      height: 80px;
+      margin-right: 15px;
+      object-fit: contain;
+    }
 
-      .hospital-info h2 {
-        margin: 0;
-        font-size: 18px;
-      }
+    .hospital-info h2 {
+      margin: 0;
+      font-size: 18px;
+    }
 
-      .hospital-info p {
-        margin: 2px 0;
-        font-size: 12px;
-      }
+    .hospital-info p {
+      margin: 2px 0;
+      font-size: 12px;
+    }
 
-      .section {
-        margin-bottom: 15px;
-      }
+    .section {
+      margin-bottom: 15px;
+    }
 
-      .section-title {
-        font-weight: bold;
-        margin-bottom: 5px;
-        border-bottom: 1px solid #000;
-        padding-bottom: 3px;
-      }
+    .section-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+      border-bottom: 1px solid #000;
+      padding-bottom: 3px;
+    }
 
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 5px;
-      }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 5px;
+    }
 
-      table th,
-      table td {
-        border: 1px solid #000;
-        padding: 5px;
-        text-align: left;
-        font-size: 11px;
-      }
+    table th,
+    table td {
+      border: 1px solid #000;
+      padding: 5px;
+      text-align: left;
+      font-size: 11px;
+    }
 
-      table th {
-        background-color: #f0f0f0;
-      }
+    table th {
+      background-color: #f0f0f0;
+    }
 
-      .session-block {
-        page-break-after: always;
-      }
+    .signature {
+      margin-top: 30px;
+      text-align: right;
+      font-size: 12px;
+    }
 
-      .session-block:last-child {
-        page-break-after: auto;
-      }
+    .footer {
+      margin-top: 30px;
+      border-top: 1px solid #000;
+      padding-top: 8px;
+      font-size: 11px;
+      text-align: center;
+    }
+  </style>
+</head>
 
-      .signature {
-        margin-top: 30px;
-        text-align: right;
-        font-size: 12px;
-      }
+<body>
 
-      .footer {
-        margin-top: 30px;
-        border-top: 1px solid #000;
-        padding-top: 8px;
-        font-size: 11px;
-        text-align: center;
-      }
-    </style>
-  </head>
+{% for session in sessions %}
+<div class="page">
 
-  <body>
-    {% for session in sessions %}
-    <div class="page">
-      <!-- HEADER (LOGO ON EVERY PAGE) -->
-      <div class="header">
-        {% if hospital.logo_url %}
-        <img src="{{ hospital.logo_url }}" class="logo" />
-        {% endif %}
+  <!-- HEADER -->
+  <div class="header">
+    {% if hospital.logo_path %}
+      <img src="file://{{ hospital.logo_path }}" class="logo" />
+    {% endif %}
 
-        <div class="hospital-info">
-          <h2>{{ hospital.name }}</h2>
-          {% if hospital.address %}
-          <p>{{ hospital.address }}</p>
-          {% endif %} {% if hospital.phone %}
-          <p>Phone: {{ hospital.phone }}</p>
-          {% endif %}
-        </div>
-      </div>
-
-      <!-- PATIENT INFO -->
-      <div class="section">
-        <div class="section-title">Patient Details</div>
-        <p>
-          <strong>Name:</strong> {{ patient.full_name }}<br />
-          <strong>Age:</strong> {{ patient.age|default:"-" }} &nbsp;
-          <strong>Gender:</strong> {{ patient.gender|default:"-" }}<br />
-          <strong>Phone:</strong> {{ patient.phone|default:"-" }}
-        </p>
-      </div>
-
-      <!-- VISIT + SESSION INFO -->
-      <div class="section">
-        <div class="section-title">Consultation Details</div>
-        <p>
-          <strong>Doctor:</strong> Dr. {{ doctor.name }}<br />
-          <strong>Visit Date:</strong> {{ visit.visit_date|date:"d-m-Y" }}<br />
-          <strong>Session:</strong> #{{ session.session_number }}<br />
-          <strong>Consulted At:</strong> {{ session.date|date:"d-m-Y H:i" }}<br />
-          <strong>Validity:</strong> {{ visit.validity_days }} days
-        </p>
-      </div>
-
-      <!-- PRESCRIPTION -->
-      <div class="section">
-        <div class="section-title">Prescription</div>
-
-        {% for s in sessions %}
-        <div class="session-block">
-          <p>
-            <strong>Session {{ s.session_number }}</strong>
-            {% if s.date %} ({{ s.date|date:"d-m-Y H:i" }}) {% endif %}
-          </p>
-
-          {% if s.medicines %}
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Medicine</th>
-                <th>Dosage</th>
-                <th>Frequency</th>
-                <th>Duration</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for m in s.medicines %}
-              <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ m.name }}</td>
-                <td>{{ m.dosage }}</td>
-                <td>{{ m.frequency }}</td>
-                <td>{{ m.duration }}</td>
-                <td>{{ m.status }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-          {% else %}
-          <p>No medicines prescribed in this session.</p>
-          {% endif %}
-        </div>
-        {% endfor %}
-      </div>
-
-      <!-- SIGNATURE -->
-      <div class="signature">
-        <p>__________________________</p>
-        <p>Dr. {{ doctor.name }}</p>
-      </div>
-
-      <!-- FOOTER -->
-      {% if hospital.footer_note %}
-      <div class="footer">{{ hospital.footer_note }}</div>
+    <div class="hospital-info">
+      <h2>{{ hospital.name }}</h2>
+      {% if hospital.address %}
+        <p>{{ hospital.address }}</p>
+      {% endif %}
+      {% if hospital.phone %}
+        <p>Phone: {{ hospital.phone }}</p>
       {% endif %}
     </div>
-    {% endfor %}
-  </body>
+  </div>
+
+  <!-- PATIENT INFO -->
+  <div class="section">
+    <div class="section-title">Patient Details</div>
+    <p>
+      <strong>Name:</strong> {{ patient.full_name }}<br />
+      <strong>Age:</strong> {{ patient.age|default:"-" }} &nbsp;
+      <strong>Gender:</strong> {{ patient.gender|default:"-" }}<br />
+      <strong>Phone:</strong> {{ patient.phone|default:"-" }}
+    </p>
+  </div>
+
+  <!-- CONSULTATION INFO -->
+  <div class="section">
+    <div class="section-title">Consultation Details</div>
+    <p>
+      <strong>Doctor:</strong> Dr. {{ doctor.name }}<br />
+      <strong>Session:</strong> #{{ session.session_number }}<br />
+      <strong>Consulted At:</strong>
+      {{ session.date|date:"d-m-Y h:i A" }}<br />
+      <strong>Validity:</strong> {{ visit.validity_days }} days
+    </p>
+  </div>
+
+  <!-- PRESCRIPTION -->
+  <div class="section">
+    <div class="section-title">Prescription</div>
+
+    {% if session.medicines %}
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Medicine</th>
+            <th>Dosage</th>
+            <th>Frequency</th>
+            <th>Duration</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in session.medicines %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ m.name }}</td>
+            <td>{{ m.dosage }}</td>
+            <td>{{ m.frequency }}</td>
+            <td>{{ m.duration }}</td>
+            <td>{{ m.status }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No medicines prescribed in this session.</p>
+    {% endif %}
+  </div>
+
+  <!-- SIGNATURE -->
+  <div class="signature">
+    <p>__________________________</p>
+    <p>Dr. {{ doctor.name }}</p>
+  </div>
+
+  <!-- FOOTER -->
+  {% if hospital.footer_note %}
+    <div class="footer">{{ hospital.footer_note }}</div>
+  {% endif %}
+
+</div>
+{% endfor %}
+
+</body>
 </html>

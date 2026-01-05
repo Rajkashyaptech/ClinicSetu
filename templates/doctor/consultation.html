@@ -1,4 +1,5 @@
 {% extends "base/base.html" %}
+
 {% block title %}Consultation | ClinicSetu{% endblock %}
 
 {% block content %}
@@ -8,65 +9,68 @@
 <!-- PATIENT INFO -->
 <div class="card mb-3">
   <div class="card-body">
-    <strong>Patient:</strong> {{ session.visit.patient.full_name }}<br>
+    <strong>Patient:</strong> {{ session.visit.patient.full_name }}<br />
     <strong>Age:</strong> {{ session.visit.patient.age|default:"-" }} |
     <strong>Gender:</strong> {{ session.visit.patient.gender|default:"-" }}
   </div>
 </div>
-
-{% if history %}
-<hr>
-<h6>Previous Visits</h6>
-
-{% for visit in history %}
-  <div class="card mb-2">
-    <div class="card-body">
-      <strong>Date:</strong> {{ visit.visit_date|date:"Y-m-d" }} <br>
-      <strong>Doctor:</strong> {{ visit.doctor }}
-
-      {% if visit.medicines %}
-        <ul class="mt-2">
-          {% for med in visit.medicines %}
-            <li>
-              {{ med.medicine_name }}
-              ({{ med.dosage }} – {{ med.frequency }} – {{ med.duration }})
-              <small class="text-muted">[{{ med.status }}]</small>
-            </li>
-          {% endfor %}
-        </ul>
-      {% else %}
-        <p class="text-muted mt-2">No medicines prescribed</p>
-      {% endif %}
-    </div>
-  </div>
-{% endfor %}
-{% endif %}
 
 <!-- VITALS -->
 <div class="card mb-3">
   <div class="card-body">
     <h6>Vitals</h6>
 
-    {% if session.visit.vitals %}
-      {% with v=session.visit.vitals %}
-        <div>Height: {{ v.height_cm|default:"-" }} cm</div>
-        <div>Weight: {{ v.weight_kg|default:"-" }} kg</div>
-        <div>Pulse: {{ v.pulse_rate|default:"-" }}</div>
-      {% endwith %}
-    {% else %}
-      <p class="text-muted">Vitals not recorded</p>
+    {% if session.visit.vitals %} {% with v=session.visit.vitals %}
+    <div>Height: {{ v.height_cm|default:"-" }} cm</div>
+    <div>Weight: {{ v.weight_kg|default:"-" }} kg</div>
+    <div>Pulse: {{ v.pulse_rate|default:"-" }}</div>
+    {% endwith %} {% else %}
+    <p class="text-muted">Vitals not recorded</p>
     {% endif %}
   </div>
 </div>
 
+<!-- PREVIOUS MEDICINES -->
+{% if previous_items %}
+<div class="card mb-3">
+  <div class="card-body">
+    <h6 class="text-muted">Previous Prescriptions</h6>
+
+    <ul class="list-group">
+      {% for m in previous_items %}
+      <li class="list-group-item text-muted">
+        <strong>{{ m.medicine_name }}</strong>
+        — {{ m.dosage }}, {{ m.frequency }}, {{ m.duration }}
+        <br />
+        <small>
+          Session {{ m.session.session_number }} {% if m.session.completed_at %}
+          • {{ m.session.completed_at|date:"d M Y, h:i A" }} {% endif %}
+        </small>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+
 <!-- CURRENT MEDICINES -->
 <div class="card mb-3">
   <div class="card-body">
-    <h6>Current Medicines</h6>
+    <h6>Current Session Medicines</h6>
+
     <ul id="medicineList" class="list-group mb-3">
-      <li class="list-group-item text-muted">
-        Loading medicines…
-      </li>
+      {% if current_items %}
+        {% for m in current_items %}
+          <li class="list-group-item">
+            <strong>{{ m.medicine_name }}</strong>
+            — {{ m.dosage }}, {{ m.frequency }}, {{ m.duration }}
+          </li>
+        {% endfor %}
+      {% else %}
+        <li class="list-group-item text-muted">
+          No medicines added in this session yet
+        </li>
+      {% endif %}
     </ul>
   </div>
 </div>
@@ -78,229 +82,248 @@
 
     <form id="medicineForm" onsubmit="addMedicine(event)">
       {% csrf_token %}
-      <input type="hidden" id="prescriptionId" value="{{ session.visit.prescription.id }}">
-      <input type="hidden" id="sessionId" value="{{ session.id }}">
+      <input
+        type="hidden"
+        id="prescriptionId"
+        value="{{ session.visit.prescription.id }}"
+      />
+      <input type="hidden" id="sessionId" value="{{ session.id }}" />
 
       <div class="row">
         <div class="col-md-3 position-relative">
-  <input
-    class="form-control"
-    placeholder="Medicine"
-    id="medicine"
-    autocomplete="off"
-    required
-  >
+          <input
+            class="form-control"
+            placeholder="Medicine"
+            id="medicine"
+            autocomplete="off"
+            required
+          />
 
-  <ul
-    id="medicineSuggestions"
-    class="list-group position-absolute w-100 d-none"
-    style="z-index: 1000; max-height: 200px; overflow-y: auto;"
-  ></ul>
-</div>
+          <ul
+            id="medicineSuggestions"
+            class="list-group position-absolute w-100 d-none"
+            style="z-index: 1000; max-height: 200px; overflow-y: auto"
+          ></ul>
+        </div>
 
         <div class="col-md-3">
-          <input class="form-control" placeholder="Dosage" id="dosage" required>
+          <input
+            class="form-control"
+            placeholder="Dosage"
+            id="dosage"
+            required
+          />
         </div>
         <div class="col-md-3">
-          <input class="form-control" placeholder="Frequency" id="frequency" required>
+          <input
+            class="form-control"
+            placeholder="Frequency"
+            id="frequency"
+            required
+          />
         </div>
         <div class="col-md-3">
-          <input class="form-control" placeholder="Duration" id="duration" required>
+          <input
+            class="form-control"
+            placeholder="Duration"
+            id="duration"
+            required
+          />
         </div>
       </div>
 
-      <button type="submit" class="btn btn-success mt-3">
-        Add
-      </button>
-
+      <button type="submit" class="btn btn-success mt-3">Add</button>
     </form>
   </div>
 </div>
 
 <!-- COMPLETE SESSION -->
 <div class="text-end">
-  <a href="{% url 'complete_consultation' session.id %}"
-     class="btn btn-danger">
+  <a href="{% url 'complete_consultation' session.id %}" class="btn btn-danger">
     Complete Session
   </a>
 </div>
 {% endblock %}
 
 
+<!-- JS BLOCK-->
 {% block extra_js %}
 <script>
-const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-const prescriptionId = document.getElementById("prescriptionId").value;
-const sessionId = document.getElementById("sessionId").value;
+  const csrftoken = document.querySelector("[name=csrfmiddlewaretoken]").value;
+  const prescriptionId = document.getElementById("prescriptionId").value;
+  const sessionId = document.getElementById("sessionId").value;
 
-/* LOAD MEDICINES */
-function loadMedicines() {
-  fetch(`/api/v1/prescriptions/active/?prescription_id=${prescriptionId}&session_id=${sessionId}`)
+  /* LOAD MEDICINES */
+  function loadMedicines() {
+    fetch(
+      `/api/v1/prescriptions/active/?prescription_id=${prescriptionId}&session_id=${sessionId}`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        const list = document.getElementById("medicineList");
+        list.innerHTML = "";
 
-    .then(res => res.json())
-    .then(data => {
-      const list = document.getElementById("medicineList");
-      list.innerHTML = "";
-
-      if (!data.length) {
-        list.innerHTML = `
+        if (!data.length) {
+          list.innerHTML = `
           <li class="list-group-item text-muted">
             No medicines added yet
           </li>`;
-        return;
-      }
+          return;
+        }
 
-      data.forEach(m => {
-        list.innerHTML += `
+        data.forEach((m) => {
+          list.innerHTML += `
           <li class="list-group-item">
             <strong>${m.medicine_name}</strong>
             — ${m.dosage}, ${m.frequency}, ${m.duration}
           </li>`;
-      });
-    })
-    .catch(() => {
-      document.getElementById("medicineList").innerHTML =
-        `<li class="list-group-item text-danger">
+        });
+      })
+      .catch(() => {
+        document.getElementById(
+          "medicineList"
+        ).innerHTML = `<li class="list-group-item text-danger">
           Failed to load medicines
         </li>`;
-    });
-}
+      });
+  }
 
-/* ADD MEDICINE */
-function addMedicine(event) {
-  event.preventDefault();
+  /* ADD MEDICINE */
+  function addMedicine(event) {
+    event.preventDefault();
 
-  fetch("/api/v1/prescriptions/add-medicine/", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-CSRFToken": csrftoken
-    },
-    body: JSON.stringify({
-      prescription_id: document.getElementById("prescriptionId").value,
-      session_id: document.getElementById("sessionId").value,
-      medicine: document.getElementById("medicine").value,
-      dosage: document.getElementById("dosage").value,
-      frequency: document.getElementById("frequency").value,
-      duration: document.getElementById("duration").value
+    fetch("/api/v1/prescriptions/add-medicine/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": csrftoken,
+      },
+      body: JSON.stringify({
+        prescription_id: document.getElementById("prescriptionId").value,
+        session_id: document.getElementById("sessionId").value,
+        medicine: document.getElementById("medicine").value,
+        dosage: document.getElementById("dosage").value,
+        frequency: document.getElementById("frequency").value,
+        duration: document.getElementById("duration").value,
+      }),
     })
-  })
-  .then(res => {
-    if (!res.ok) throw new Error("Failed to add medicine");
-    return res.json();
-  })
-  .then(() => {
-    document.getElementById("medicineForm").reset();
-    loadMedicines();
-  })
-  .catch(err => alert(err.message));
-}
-
-/* INIT */
-loadMedicines();
-
-const medicineInput = document.getElementById("medicine");
-const suggestionsBox = document.getElementById("medicineSuggestions");
-
-let suggestions = [];
-let activeIndex = -1;
-
-/* FETCH AUTOCOMPLETE */
-medicineInput.addEventListener("input", () => {
-  const query = medicineInput.value.trim();
-
-  if (query.length < 2) {
-    hideSuggestions();
-    return;
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to add medicine");
+        return res.json();
+      })
+      .then(() => {
+        document.getElementById("medicineForm").reset();
+        loadMedicines();
+      })
+      .catch((err) => alert(err.message));
   }
 
-  fetch(`/api/v1/medicines/autocomplete/?q=${query}`)
-    .then(res => res.json())
-    .then(data => {
-      suggestions = data;
-      renderSuggestions();
-    })
-    .catch(() => hideSuggestions());
-});
+  /* INIT */
+  loadMedicines();
 
-/* KEYBOARD NAVIGATION */
-medicineInput.addEventListener("keydown", (e) => {
-  if (suggestionsBox.classList.contains("d-none")) return;
+  const medicineInput = document.getElementById("medicine");
+  const suggestionsBox = document.getElementById("medicineSuggestions");
 
-  if (e.key === "ArrowDown") {
-    activeIndex = Math.min(activeIndex + 1, suggestions.length - 1);
-    updateActiveItem();
-    e.preventDefault();
-  }
+  let suggestions = [];
+  let activeIndex = -1;
 
-  if (e.key === "ArrowUp") {
-    activeIndex = Math.max(activeIndex - 1, 0);
-    updateActiveItem();
-    e.preventDefault();
-  }
+  /* FETCH AUTOCOMPLETE */
+  medicineInput.addEventListener("input", () => {
+    const query = medicineInput.value.trim();
 
-  if (e.key === "Enter" && activeIndex >= 0) {
-    selectSuggestion(suggestions[activeIndex].name);
-    e.preventDefault(); // prevent form submit
-  }
+    if (query.length < 2) {
+      hideSuggestions();
+      return;
+    }
 
-  if (e.key === "Escape") {
-    hideSuggestions();
-  }
-});
-
-/* CLICK OUTSIDE */
-document.addEventListener("click", (e) => {
-  if (!e.target.closest("#medicineSuggestions") &&
-      e.target !== medicineInput) {
-    hideSuggestions();
-  }
-});
-
-/* RENDER SUGGESTIONS */
-function renderSuggestions() {
-  if (!suggestions.length) {
-    hideSuggestions();
-    return;
-  }
-
-  suggestionsBox.innerHTML = "";
-  activeIndex = -1;
-
-  suggestions.forEach((item, index) => {
-    const li = document.createElement("li");
-    li.className = "list-group-item list-group-item-action";
-    li.textContent = item.name;
-
-    li.addEventListener("click", () => {
-      selectSuggestion(item.name);
-    });
-
-    suggestionsBox.appendChild(li);
+    fetch(`/api/v1/medicines/autocomplete/?q=${query}`)
+      .then((res) => res.json())
+      .then((data) => {
+        suggestions = data;
+        renderSuggestions();
+      })
+      .catch(() => hideSuggestions());
   });
 
-  suggestionsBox.classList.remove("d-none");
-}
+  /* KEYBOARD NAVIGATION */
+  medicineInput.addEventListener("keydown", (e) => {
+    if (suggestionsBox.classList.contains("d-none")) return;
 
-/* UPDATE ACTIVE ITEM */
-function updateActiveItem() {
-  Array.from(suggestionsBox.children).forEach((li, idx) => {
-    li.classList.toggle("active", idx === activeIndex);
+    if (e.key === "ArrowDown") {
+      activeIndex = Math.min(activeIndex + 1, suggestions.length - 1);
+      updateActiveItem();
+      e.preventDefault();
+    }
+
+    if (e.key === "ArrowUp") {
+      activeIndex = Math.max(activeIndex - 1, 0);
+      updateActiveItem();
+      e.preventDefault();
+    }
+
+    if (e.key === "Enter" && activeIndex >= 0) {
+      selectSuggestion(suggestions[activeIndex].name);
+      e.preventDefault(); // prevent form submit
+    }
+
+    if (e.key === "Escape") {
+      hideSuggestions();
+    }
   });
-}
 
-/* SELECT SUGGESTION */
-function selectSuggestion(name) {
-  medicineInput.value = name;
-  hideSuggestions();
-}
+  /* CLICK OUTSIDE */
+  document.addEventListener("click", (e) => {
+    if (
+      !e.target.closest("#medicineSuggestions") &&
+      e.target !== medicineInput
+    ) {
+      hideSuggestions();
+    }
+  });
 
-/* HIDE */
-function hideSuggestions() {
-  suggestionsBox.classList.add("d-none");
-  suggestionsBox.innerHTML = "";
-  activeIndex = -1;
-}
+  /* RENDER SUGGESTIONS */
+  function renderSuggestions() {
+    if (!suggestions.length) {
+      hideSuggestions();
+      return;
+    }
 
+    suggestionsBox.innerHTML = "";
+    activeIndex = -1;
+
+    suggestions.forEach((item, index) => {
+      const li = document.createElement("li");
+      li.className = "list-group-item list-group-item-action";
+      li.textContent = item.name;
+
+      li.addEventListener("click", () => {
+        selectSuggestion(item.name);
+      });
+
+      suggestionsBox.appendChild(li);
+    });
+
+    suggestionsBox.classList.remove("d-none");
+  }
+
+  /* UPDATE ACTIVE ITEM */
+  function updateActiveItem() {
+    Array.from(suggestionsBox.children).forEach((li, idx) => {
+      li.classList.toggle("active", idx === activeIndex);
+    });
+  }
+
+  /* SELECT SUGGESTION */
+  function selectSuggestion(name) {
+    medicineInput.value = name;
+    hideSuggestions();
+  }
+
+  /* HIDE */
+  function hideSuggestions() {
+    suggestionsBox.classList.add("d-none");
+    suggestionsBox.innerHTML = "";
+    activeIndex = -1;
+  }
 </script>
 {% endblock %}

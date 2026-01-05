@@ -5,28 +5,19 @@ from common.constants import UserRole
 
 from apps.consultations.services.doctor_queue import get_doctor_queue
 from apps.consultations.services.session_closer import complete_session
-
 from apps.consultations.models import ConsultationSession
 from apps.prescriptions.models import Prescription
-
 from apps.consultations.services.patient_history import get_recent_visit_history
-
-from apps.consultations.services.history import (
-    get_consultation_history
-)
+from apps.consultations.services.history import get_consultation_history
 from apps.visits.models import Visit
-from apps.consultations.services.history_permissions import (
-    can_access_visit
-)
+from apps.consultations.services.history_permissions import can_access_visit
 from apps.prescriptions.services.pdf_context_builder import (
-    build_consultation_pdf_context
+    build_consultation_pdf_context,
+    build_session_pdf_context,
 )
-from apps.prescriptions.services.pdf_generator import (
-    generate_consultation_pdf
-)
+from apps.prescriptions.services.pdf_generator import generate_consultation_pdf
 
 
-# Create your views here.
 @login_required
 @role_required(UserRole.DOCTOR)
 def doctor_queue(request):
@@ -55,17 +46,16 @@ def consultation_detail(request, session_id):
         visit=session.visit
     )
 
-    # Medicines added in THIS session only
+    # Medicines added in THIS session
     current_items = prescription.items.filter(
         session=session,
         status="active"
     )
 
-    # Medicines from PREVIOUS sessions (history)
-    previous_items = prescription.items.exclude(
-        session=session
-    )
-
+    # Medicines from PREVIOUS sessions
+    previous_items = prescription.items.filter(
+        session__session_number__lt=session.session_number
+    ).select_related("session").order_by("session__session_number")
 
     patient = session.visit.patient
     history = get_recent_visit_history(
@@ -170,4 +160,25 @@ def consultation_pdf(request, visit_id):
     can_access_visit(request.user, visit)
 
     context = build_consultation_pdf_context(visit=visit)
+    return generate_consultation_pdf(context=context)
+
+
+@login_required
+@role_required(
+    UserRole.DOCTOR,
+    UserRole.RECEPTIONIST,
+    UserRole.MEDICAL_STAFF,
+    UserRole.HOSPITAL_ADMIN,
+)
+def consultation_session_pdf(request, session_id):
+    session = get_object_or_404(
+        ConsultationSession,
+        id=session_id,
+        visit__hospital=request.user.hospital,
+        status=ConsultationSession.STATUS_COMPLETED,
+    )
+
+    can_access_visit(request.user, session.visit)
+
+    context = build_session_pdf_context(session=session)
     return generate_consultation_pdf(context=context)
