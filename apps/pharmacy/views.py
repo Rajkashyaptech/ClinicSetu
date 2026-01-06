@@ -11,6 +11,7 @@ from apps.prescriptions.models import Prescription
 from apps.consultations.models import ConsultationSession
 
 from apps.pharmacy.services.dispense_initializer import get_or_create_dispense_record
+from apps.pharmacy.services.dispensed_history import get_dispensed_history
 
 # Create your views here.
 
@@ -71,5 +72,19 @@ def prescription_detail(request, prescription_id):
             "prescription": prescription,
             "dispense_record": dispense_record,
             "can_dispense": can_dispense,
+        }
+    )
+
+
+@login_required
+@role_required(UserRole.MEDICAL_STAFF)
+def dispensed_history(request):
+    records = get_dispensed_history(request.user)
+    return render(
+        request,
+        "pharmacy/dispensed_history.html",
+        {
+            "records": records,
+            "sidebar_template": "base/sidebar/pharmacy.html",
         }
     )
