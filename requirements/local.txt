@@ -1,3 +1,7 @@
 -r base.txt
+
+# ===============================
+# DEVELOPMENT TOOLS
+# ===============================
+
 django-debug-toolbar==6.1.0
-django-extensions==3.2.3

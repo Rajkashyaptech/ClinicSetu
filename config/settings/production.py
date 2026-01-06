@@ -1,9 +1,26 @@
 from .base import *
 import os
 
+# --------------------------------------------------
+# PRODUCTION SETTINGS
+# --------------------------------------------------
+
 DEBUG = False
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
+# --------------------------------------------------
+# ALLOWED HOSTS
+# --------------------------------------------------
+
+# Example: ALLOWED_HOSTS=clinicsetu.com,www.clinicsetu.com
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv("ALLOWED_HOSTS", "").split(",")
+    if host.strip()
+]
+
+# --------------------------------------------------
+# DATABASE (PostgreSQL)
+# --------------------------------------------------
 
 DATABASES = {
     "default": {
@@ -16,9 +33,9 @@ DATABASES = {
     }
 }
 
-# ===============================
-# Security Settings
-# ===============================
+# --------------------------------------------------
+# SECURITY SETTINGS
+# --------------------------------------------------
 
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -29,12 +46,27 @@ SESSION_COOKIE_SECURE = True
 
 SECURE_SSL_REDIRECT = True
 
-SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_SECONDS = 31536000  # 1 year
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
-# ===============================
-# Static Files
-# ===============================
+# Django 4.2+ requirement for HTTPS
+CSRF_TRUSTED_ORIGINS = [
+    f"https://{host}" for host in ALLOWED_HOSTS
+]
+
+# --------------------------------------------------
+# STATIC FILES (WhiteNoise)
+# --------------------------------------------------
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STATICFILES_STORAGE = (
+    "whitenoise.storage.CompressedManifestStaticFilesStorage"
+)
+
+# Enable WhiteNoise middleware
+MIDDLEWARE.insert(
+    MIDDLEWARE.index("django.middleware.security.SecurityMiddleware") + 1,
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+)
