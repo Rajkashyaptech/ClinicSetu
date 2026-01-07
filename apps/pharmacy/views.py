@@ -18,9 +18,10 @@ from apps.pharmacy.services.dispensed_history import get_dispensed_history
 @login_required
 @role_required(UserRole.MEDICAL_STAFF)
 def mark_printed(request, record_id):
-    record = DispenseRecord.objects.get(
+    record = get_object_or_404(
+        DispenseRecord,
         id=record_id,
-        prescription__visit__hospital=request.user.hospital
+        session__visit__hospital=request.user.hospital
     )
     mark_as_printed(record)
     return redirect("pharmacy_dashboard")
@@ -29,9 +30,10 @@ def mark_printed(request, record_id):
 @login_required
 @role_required(UserRole.MEDICAL_STAFF)
 def mark_dispensed(request, record_id):
-    record = DispenseRecord.objects.get(
+    record = get_object_or_404(
+        DispenseRecord,
         id=record_id,
-        prescription__visit__hospital=request.user.hospital
+        session__visit__hospital=request.user.hospital
     )
     mark_as_dispensed(record)
     return redirect("pharmacy_dashboard")
@@ -49,7 +51,6 @@ def pharmacy_dashboard(request):
 )
 
 
-
 @login_required
 @role_required(UserRole.MEDICAL_STAFF)
 def prescription_detail(request, prescription_id):
@@ -59,19 +60,29 @@ def prescription_detail(request, prescription_id):
         visit__hospital=request.user.hospital
     )
 
-    dispense_record = get_or_create_dispense_record(prescription)
+    # get latest COMPLETED session for this visit
+    session = (
+        prescription.visit.sessions
+        .filter(status=ConsultationSession.STATUS_COMPLETED)
+        .order_by("-completed_at")
+        .first()
+    )
 
-    can_dispense = prescription.visit.sessions.filter(
-        status=ConsultationSession.STATUS_COMPLETED
-    ).exists()
+    if not session:
+        return redirect("pharmacy_dashboard")
+
+    # session-based dispense record
+    dispense_record = DispenseRecord.objects.get(session=session)
 
     return render(
         request,
         "pharmacy/prescription_detail.html",
         {
             "prescription": prescription,
+            "session": session,
             "dispense_record": dispense_record,
-            "can_dispense": can_dispense,
+            "can_dispense": True,
+            "sidebar_template": "base/sidebar/pharmacy.html",
         }
     )
 

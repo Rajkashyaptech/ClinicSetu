@@ -6,6 +6,7 @@ from apps.pharmacy.services.dispense_initializer import (
 )
 
 from apps.audit.services.logger import log_action
+from apps.pharmacy.models import DispenseRecord
 
 
 def create_new_session(*, visit, doctor):
@@ -39,12 +40,17 @@ def complete_session(session):
     if session.status == session.STATUS_COMPLETED:
         return session
 
-    # Complete session only
+    # 1️⃣ Complete session
     session.status = session.STATUS_COMPLETED
     session.completed_at = now()
     session.save(update_fields=["status", "completed_at"])
 
-    # Audit log
+    # 2️⃣ Create pharmacy dispense record (SESSION-BASED)
+    DispenseRecord.objects.get_or_create(
+        session=session
+    )
+
+    # 3️⃣ Audit log
     log_action(
         actor=session.doctor,
         action="SESSION_COMPLETED",
@@ -52,12 +58,8 @@ def complete_session(session):
         entity_id=session.id,
         metadata={
             "visit_id": session.visit.id,
-            "session_number": session.session_number
+            "session_number": session.session_number,
         }
     )
-
-    # Initialize pharmacy workflow once per visit
-    if hasattr(session.visit, "prescription"):
-        get_or_create_dispense_record(session.visit.prescription)
 
     return session

@@ -1,13 +1,24 @@
 from django.utils.timezone import now
+from apps.audit.services.logger import log_action
 
 
-def mark_as_dispensed(dispense_record):
-    if dispense_record.is_dispensed:
-        return dispense_record
+def mark_as_dispensed(record):
+    if record.is_dispensed:
+        return record
 
-    dispense_record.is_dispensed = True
-    dispense_record.dispensed_at = now()
-    dispense_record.save(
-        update_fields=["is_dispensed", "dispensed_at"]
+    record.is_dispensed = True
+    record.dispensed_at = now()
+    record.save(update_fields=["is_dispensed", "dispensed_at"])
+
+    log_action(
+        actor=None,  # medical staff
+        action="MEDICINE_DISPENSED",
+        entity="ConsultationSession",
+        entity_id=record.session.id,
+        metadata={
+            "session_number": record.session.session_number,
+            "visit_id": record.session.visit.id,
+        }
     )
-    return dispense_record
+
+    return record

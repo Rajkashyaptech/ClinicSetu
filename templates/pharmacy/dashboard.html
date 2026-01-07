@@ -1,7 +1,5 @@
-{% extends "base/base.html" %}
-{% block title %}Pharmacy Dashboard | ClinicSetu{% endblock %}
-
-{% block content %}
+{% extends "base/base.html" %} {% block title %}Pharmacy Dashboard |
+ClinicSetu{% endblock %} {% block content %}
 <h4 class="mb-3">Pharmacy Dashboard</h4>
 
 <div class="card shadow-sm">
@@ -11,14 +9,13 @@
         <tr>
           <th>Patient</th>
           <th>Doctor</th>
-          <th>Visit Date</th>
-          <th>Status</th>
+          <th>Completed At</th>
           <th></th>
         </tr>
       </thead>
-      <tbody id="pharmacyTable">
+      <tbody id="queueBody">
         <tr>
-          <td colspan="5" class="text-muted">Loading...</td>
+          <td colspan="4" class="text-muted">Loading...</td>
         </tr>
       </tbody>
     </table>
@@ -29,38 +26,48 @@
 
 {% block extra_js %}
 <script>
-fetch("/api/v1/pharmacy/queue/")  // we’ll wire this API now
-  .then(res => res.json())
-  .then(data => {
-    const tbody = document.getElementById("pharmacyTable");
-    tbody.innerHTML = "";
+document.addEventListener("DOMContentLoaded", () => {
+  fetch("/api/v1/pharmacy/queue/")
+    .then(res => res.json())
+    .then(data => {
+      const tbody = document.getElementById("queueBody");
 
-    if (data.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="5" class="text-center text-muted">
-            No prescriptions pending
-          </td>
-        </tr>`;
-      return;
-    }
+      if (!tbody) {
+        console.error("queueBody not found in DOM");
+        return;
+      }
 
-    data.forEach(p => {
-      tbody.innerHTML += `
-        <tr>
-          <td>${p.patient_name}</td>
-          <td>${p.doctor_name}</td>
-          <td>${p.completed_at? new Date(p.completed_at).toLocaleDateString(): "-"}</td>
-          <td>Pending</td>
-          <td>
-            <a href="/pharmacy/prescription/${p.prescription_id}/"
-               class="btn btn-sm btn-outline-primary">
-              View
-            </a>
-          </td>
-        </tr>
-      `;
+      tbody.innerHTML = "";
+
+      if (!data.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="4" class="text-center text-muted">
+              No pending prescriptions
+            </td>
+          </tr>`;
+        return;
+      }
+
+      data.forEach(row => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${row.patient_name}</td>
+            <td>${row.doctor_name}</td>
+            <td>${new Date(row.completed_at).toLocaleString()}</td>
+            <td>
+              <a href="/pharmacy/prescription/${row.prescription_id}/"
+                 class="btn btn-sm btn-primary">
+                Open
+              </a>
+            </td>
+          </tr>
+        `;
+      });
+    })
+    .catch(err => {
+      console.error("Pharmacy queue error", err);
     });
-  });
+});
 </script>
 {% endblock %}

@@ -6,67 +6,83 @@
 
 <h4 class="mb-3">Prescription</h4>
 
+<!-- PATIENT INFO -->
 <div class="card mb-3">
   <div class="card-body">
     <strong>Patient:</strong> {{ prescription.visit.patient.full_name }}<br>
     <strong>Doctor:</strong> {{ prescription.visit.doctor.username }}<br>
-    <strong>Date:</strong> {{ prescription.created_at|date:"d M Y" }}
+    <strong>Date:</strong> {{ session.completed_at|date:"d M Y, h:i A" }}
   </div>
 </div>
 
+<!-- MEDICINES (LATEST SESSION ONLY) -->
 <div class="card mb-3">
   <div class="card-body">
     <h6>Medicines</h6>
-    <ul>
-      {% for item in prescription.items.all %}
-        {% if item.status == "active" %}
-          <li>
-            {{ item.medicine_name }} —
-            {{ item.dosage }},
-            {{ item.frequency }},
-            {{ item.duration }}
-          </li>
-        {% endif %}
-      {% endfor %}
-    </ul>
+    <h6 class="text-muted">Session #{{ session.session_number }}</h6>
+
+    {% if session.prescription_items.exists %}
+      <table class="table table-bordered mt-2">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Medicine</th>
+            <th>Dosage</th>
+            <th>Frequency</th>
+            <th>Duration</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in session.prescription_items.all %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ item.medicine_name }}</td>
+            <td>{{ item.dosage }}</td>
+            <td>{{ item.frequency }}</td>
+            <td>{{ item.duration }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="text-muted">No medicines in this session</p>
+    {% endif %}
   </div>
 </div>
 
+<!-- ACTIONS -->
 <div class="d-flex gap-2">
   <button class="btn btn-outline-secondary" onclick="window.print()">
     Print
   </button>
 
-<button
-  id="dispenseBtn"
-  class="btn btn-success"
-  {% if not can_dispense %}
-    disabled
-  {% endif %}
->
-  Mark as Dispensed
-</button>
+  <button
+    id="dispenseBtn"
+    class="btn btn-success"
+    {% if not can_dispense %}
+      disabled
+    {% endif %}
+  >
+    Mark as Dispensed
+  </button>
+</div>
 
 {% if not can_dispense %}
-  <small class="text-muted d-block mt-1">
+  <small class="text-muted d-block mt-2">
     Waiting for doctor to complete consultation
   </small>
 {% endif %}
 
-
-</div>
 {% endblock %}
-
 
 {% block extra_js %}
 <script>
 const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
 const dispenseBtn = document.getElementById("dispenseBtn");
 
 if (dispenseBtn && !dispenseBtn.disabled) {
   dispenseBtn.addEventListener("click", function () {
-    fetch("/api/v1/pharmacy/dispense/{{ prescription.id }}/", {
+    fetch("/api/v1/pharmacy/dispense/{{ session.id }}/", {
       method: "POST",
       headers: {
         "X-CSRFToken": csrftoken
@@ -74,9 +90,7 @@ if (dispenseBtn && !dispenseBtn.disabled) {
     })
     .then(async res => {
       const data = await res.json();
-      if (!res.ok) {
-        throw data;
-      }
+      if (!res.ok) throw data;
       return data;
     })
     .then(() => {

@@ -1,36 +1,39 @@
 {% extends "base/base.html" %}
+
 {% block title %}Dispensed History | ClinicSetu{% endblock %}
 
 {% block content %}
-<h4 class="mb-3">Dispensed Prescriptions</h4>
+<h4 class="mb-3">Dispensed History</h4>
 
-<div class="card shadow-sm">
-  <div class="card-body">
-
-    {% if records %}
-      <table class="table table-hover align-middle">
-        <thead>
+{% if records %}
+  <div class="card">
+    <div class="card-body p-0">
+      <table class="table table-bordered mb-0">
+        <thead class="table-light">
           <tr>
+            <th>#</th>
             <th>Patient</th>
             <th>Doctor</th>
-            <th>Visit Date</th>
+            <th>Session</th>
             <th>Dispensed At</th>
-            <th></th>
+            <th>PDF</th>
           </tr>
         </thead>
-
         <tbody>
-          {% for r in records %}
+          {% for record in records %}
             <tr>
-              <td>{{ r.prescription.visit.patient.full_name }}</td>
-              <td>Dr. {{ r.prescription.visit.doctor.username }}</td>
-              <td>{{ r.prescription.visit.created_at|date:"d M Y" }}</td>
-              <td>{{ r.dispensed_at|date:"d M Y h:i A" }}</td>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ record.session.visit.patient.full_name }}</td>
+              <td>{{ record.session.visit.doctor.username }}</td>
+              <td>#{{ record.session.session_number }}</td>
+              <td>
+                {{ record.dispensed_at|date:"d M Y, h:i A" }}
+              </td>
               <td>
                 <a
-                  href="{% url 'consultation_pdf' r.prescription.visit.id %}"
-                  class="btn btn-sm btn-outline-primary"
+                  href="{% url 'consultation_session_pdf' record.session.id %}"
                   target="_blank"
+                  class="btn btn-sm btn-outline-primary"
                 >
                   View PDF
                 </a>
@@ -39,13 +42,9 @@
           {% endfor %}
         </tbody>
       </table>
-
-    {% else %}
-      <p class="text-muted mb-0">
-        No dispensed prescriptions found.
-      </p>
-    {% endif %}
-
+    </div>
   </div>
-</div>
+{% else %}
+  <p class="text-muted">No dispensed prescriptions yet.</p>
+{% endif %}
 {% endblock %}

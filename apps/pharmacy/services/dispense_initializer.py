@@ -1,8 +1,8 @@
-from ..models import DispenseRecord
+from apps.pharmacy.models import DispenseRecord
+from apps.consultations.models import ConsultationSession
 
-
-def get_or_create_dispense_record(prescription):
+def get_or_create_dispense_record(session: ConsultationSession):
     record, _ = DispenseRecord.objects.get_or_create(
-        prescription=prescription
+        session=session
     )
     return record

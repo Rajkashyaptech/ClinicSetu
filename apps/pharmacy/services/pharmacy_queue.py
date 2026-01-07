@@ -1,17 +1,17 @@
-from apps.consultations.models import ConsultationSession
+from apps.pharmacy.models import DispenseRecord
 
-
-def get_pharmacy_queue(hospital):
+def get_pharmacy_queue(user):
     return (
-        ConsultationSession.objects
+        DispenseRecord.objects
         .select_related(
-            "visit",
-            "visit__patient",
-            "visit__prescription"
+            "session",
+            "session__visit",
+            "session__visit__patient",
+            "session__visit__doctor",
         )
         .filter(
-            visit__hospital=hospital,
-            status=ConsultationSession.STATUS_COMPLETED
+            session__visit__hospital=user.hospital,
+            is_dispensed=False,
         )
-        .order_by("-completed_at")
+        .order_by("created_at")
     )

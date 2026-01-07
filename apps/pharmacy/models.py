@@ -3,8 +3,8 @@ from apps.prescriptions.models import Prescription
 
 # Create your models here.
 class DispenseRecord(models.Model):
-    prescription = models.ForeignKey(
-        Prescription,
+    session = models.OneToOneField(
+        "consultations.ConsultationSession",
         on_delete=models.CASCADE,
         related_name="dispense_record"
     )
@@ -18,4 +18,4 @@ class DispenseRecord(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Dispense status for Prescription {self.prescription.id}"
+        return f"Dispense for Session {self.session.id}"
