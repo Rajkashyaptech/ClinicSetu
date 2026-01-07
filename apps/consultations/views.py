@@ -99,7 +99,7 @@ def complete_consultation(request, session_id):
     UserRole.HOSPITAL_ADMIN,
 )
 def consultation_history(request):
-    visits = get_consultation_history(user=request.user)
+    sessions = get_consultation_history(user=request.user)
 
     sidebar_map = {
         UserRole.DOCTOR: "base/sidebar/doctor.html",
@@ -112,7 +112,7 @@ def consultation_history(request):
         request,
         "history/consultation_list.html",
         {
-            "visits": visits,
+            "sessions": sessions,
             "sidebar_template": sidebar_map.get(request.user.role),
         }
     )
